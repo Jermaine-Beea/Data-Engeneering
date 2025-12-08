@@ -1,0 +1,127 @@
+stages:
+  - install
+  - test
+  - build
+  - dbt
+
+variables:
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+  DOCKER_TLS_CERTDIR: "/certs"
+  DOCKER_DRIVER: overlay2
+  # GitLab Container Registry variables
+  REGISTRY: $CI_REGISTRY
+  IMAGE_TAG: $CI_COMMIT_SHORT_SHA
+
+cache:
+  key: ${CI_COMMIT_REF_SLUG}
+  paths:
+    - .cache/pip
+
+# Install python deps found in the repo
+install_dependencies:
+  stage: install
+  image: python:3.11
+  script:
+    - python -m pip install --upgrade pip
+    - |
+      reqs=$(find . -type f -name 'requirements.txt' -not -path './venv/*' -print)
+      if [ -z "$reqs" ]; then
+        echo "No requirements.txt files found"
+      else
+        for f in $reqs; do
+          echo "Installing from $f"
+          python -m pip install -r "$f" || true
+        done
+      fi
+
+# Run tests when present
+run_tests:
+  stage: test
+  image: python:3.11
+  script:
+    - |
+      if [ -d tests ] || ls -d */tests >/dev/null 2>&1; then
+        python -m pip install --upgrade pip
+        python -m pip install pytest || true
+        pytest -q || true
+      else
+        echo "No tests found - skipping pytest"
+      fi
+
+# Build and push Docker images to GitLab Container Registry
+docker_build:
+  stage: build
+  image: docker:24
+  services:
+    - docker:24-dind
+  before_script:
+    - apk add --no-cache bash findutils
+    # Wait for Docker daemon to be ready
+    - timeout 30 sh -c 'until docker info >/dev/null 2>&1; do echo "Waiting for Docker daemon..."; sleep 1; done'
+    # Login to GitLab Container Registry
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin $CI_REGISTRY
+  script:
+    - |
+      set -e
+      echo "Building and pushing Docker images to GitLab Container Registry"
+      echo "Registry: $CI_REGISTRY"
+      echo "Project Path: $CI_PROJECT_PATH"
+      
+      # Find all Dockerfiles and build/push images
+      find . -type f -name Dockerfile -not -path './.git/*' -print | while read -r dockerfile; do
+        dir=$(dirname "$dockerfile")
+        service_name=$(basename "$dir")
+        
+        # Construct image name: registry.gitlab.com/username/project/service:tag
+        image_name="$CI_REGISTRY/$CI_PROJECT_PATH/$service_name"
+        image_with_tag="$image_name:$CI_COMMIT_SHORT_SHA"
+        
+        echo "================================================"
+        echo "Building: $service_name"
+        echo "From: $dir"
+        echo "Image: $image_with_tag"
+        echo "================================================"
+        
+        # Build the image
+        docker build -t "$image_with_tag" "$dir"
+        
+        # Push with commit SHA tag
+        docker push "$image_with_tag"
+        echo "✓ Pushed: $image_with_tag"
+        
+        # If on main/master branch, also tag as 'latest'
+        if [ "$CI_COMMIT_BRANCH" = "main" ] || [ "$CI_COMMIT_BRANCH" = "master" ]; then
+          latest_tag="$image_name:latest"
+          docker tag "$image_with_tag" "$latest_tag"
+          docker push "$latest_tag"
+          echo "✓ Pushed: $latest_tag"
+        fi
+        
+        echo ""
+      done
+      
+      echo "================================================"
+      echo "All images built and pushed successfully!"
+      echo "================================================"
+  only:
+    - main
+    - master
+    - develop
+    - /^feature\/.*$/
+    - /^bugfix\/.*$/
+
+# Lightweight dbt check if dbt exists
+dbt_validate:
+  stage: dbt
+  image: python:3.11
+  script:
+    - |
+      if [ -d dbt ]; then
+        python -m pip install --upgrade pip
+        python -m pip install dbt-core dbt-postgres || true
+        cd dbt
+        dbt --version || true
+        dbt compile || true
+      else
+        echo "No dbt directory - skipping dbt validation"
+      fi

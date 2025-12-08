@@ -1,0 +1,4 @@
+kafka-python==2.1.0
+cassandra-driver==3.25.0
+prometheus_client 
+
