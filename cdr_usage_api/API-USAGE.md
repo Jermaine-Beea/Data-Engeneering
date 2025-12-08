@@ -6,7 +6,7 @@ REST API for retrieving daily usage summaries from CDR (Call Detail Records) dat
 
 ```bash
 # Start via docker-compose
-docker-compose up forex-usage-api
+docker-compose up cdr-usage-api
 
 #Inspect rows directly in Postgres:
 # connect from host (compose maps 15432 -> 5432)

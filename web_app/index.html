@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Usage API Demo</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 900px; margin: 2rem auto; }
+    label { display:block; margin-top: 0.5rem }
+    input, button { padding: .5rem; font-size: 1rem }
+    pre { background:#f6f8fa; padding:1rem; overflow:auto }
+  </style>
+</head>
+<body>
+  <h1>Usage API Demo</h1>
+
+  <p>Enter an MSISDN and optional date range to query the Usage API.</p>
+
+  <label>MSISDN
+    <input id="msisdn" value="7643008066273" />
+  </label>
+
+  <label>Start date (YYYY-MM-DD)
+    <input id="start" placeholder="2024-01-01" />
+  </label>
+
+  <label>End date (YYYY-MM-DD)
+    <input id="end" placeholder="2024-01-31" />
+  </label>
+
+  <div style="margin-top:.5rem">
+    <button id="btnDaily">Get Daily Usage</button>
+    <button id="btnSummary">Get Summary</button>
+  </div>
+
+  <h2>Result</h2>
+  <pre id="out">No query run yet.</pre>
+
+  <script>
+    function buildUrl(msisdn, endpoint, start, end) {
+      let url = `/api/${endpoint}/${msisdn}`
+      const params = new URLSearchParams()
+      if (start) params.set('start_date', start)
+      if (end) params.set('end_date', end)
+      const qs = params.toString()
+      if (qs) url += `?${qs}`
+      return url
+    }
+
+    async function callApi(path) {
+      const out = document.getElementById('out')
+      out.textContent = 'Loading...'
+
+      // Use Basic auth defaults from repo: admin:admin123
+      const headers = { 'Authorization': 'Basic ' + btoa('admin:admin123') }
+
+      try {
+        const res = await fetch(path, { headers })
+        const txt = await res.text()
+        out.textContent = `HTTP ${res.status} ${res.statusText}\n\n` + txt
+      } catch (err) {
+        out.textContent = 'Error: ' + err
+      }
+    }
+
+    document.getElementById('btnDaily').addEventListener('click', () => {
+      const msisdn = document.getElementById('msisdn').value.trim()
+      const start = document.getElementById('start').value.trim()
+      const end = document.getElementById('end').value.trim()
+      if (!msisdn) return alert('Enter MSISDN')
+      const path = buildUrl(msisdn, 'usage', start, end)
+      callApi(path)
+    })
+
+    document.getElementById('btnSummary').addEventListener('click', () => {
+      const msisdn = document.getElementById('msisdn').value.trim()
+      const start = document.getElementById('start').value.trim()
+      const end = document.getElementById('end').value.trim()
+      if (!msisdn) return alert('Enter MSISDN')
+      const path = buildUrl(msisdn, 'usage', start, end) + '/summary'
+      callApi(path)
+    })
+  </script>
+</body>
+</html>
