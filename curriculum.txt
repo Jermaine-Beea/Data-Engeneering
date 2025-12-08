@@ -1,0 +1,456 @@
+
+Data Engineering: Project
+Contents
+Purpose
+Team Work
+Costs
+Getting started
+Requirements
+Installation
+Provided systems
+Project Deliverables
+Software Project Deliverables
+Prepared Layer Deliverables
+Requirements
+Recommendations
+Frequently asked questions
+Start fails because of “Docker socket”
+Infra containers exit prematurely
+What is ScyllaDB, why should it be used
+What is the expected REST API request/response
+Appendix A: Diagram
+Appendix B : Technology Stack
+Apache Zookeeper
+Debezium
+Data build tool (dbt)
+Data Engineering: Project
+Purpose
+The purpose of this project is to combine all the learnings from our DE training, to be used to solve several data engineering problems in a creative manner.
+
+While this project appears substantially more complex than what has been learned, all the tools required to complete this work have been attained through this and preceding courses. It is up to the student(s) to combine these tools as a means of solving the tasks in a creative and cost-effective way.
+
+Team Work
+You will do this project as part of a team, and will need to present your solution, design and technical discussion to WeThinkCode staff and external parties.
+
+Costs
+All applications and systems required to complete this project are freely available.
+
+The only "cost" component of this project is time. It is therefore important to focus on prioritisation and the means in which work is done in order to use this costly resource as efficiently as possible.
+
+Getting started
+Requirements
+In order to construct this environment locally the following are required:
+
+Git for source control
+
+Docker Desktop - Download it here
+
+Ensure the following resources are configured within Docker
+
+CPU Limit >= 8
+
+Memory Limit >= 8GB
+
+Swap >= 1GB
+
+Virtual Disk Limit >= 64GB
+
+Resource saver = enabled, 5min
+
+Note	if your WTC computer struggles to run all the components, you can update your Docker containers so that various coomponents run on each team member’s computer, and configure it with the correct IP addresses to be able to connect with each other.
+Installation
+In order to get started on the project, take the following steps
+
+Install and configure all required software
+
+Fork the base environment from https://gitlab.wethinkco.de/starters/data-engineering-project-2024
+
+The above folder will be referred to as PROJECT_HOME
+
+Ensure docker is running
+
+Open a terminal and go to PROJECT_HOME
+
+Confirm that a docker-compose.yml file is available in PROJECT_HOME
+
+Start the environment
+
+on windows
+
+docker compose up -d
+on mac/linux
+
+./reset-env.sh
+Provided systems
+Several components are provided as a starting point for the project in the form of a docker-compose file. Appendix A provides a diagram with supplied components.
+
+Component
+
+Description
+
+cdr
+
+Call Data Record files for a fictitious cellular provider, which are delivered to “sftp”. The data is delivered in CSV Format, the layouts described below:
+
+cdr_data
+
+msisdn - The relevant cell phone number
+
+tower_id - The ID of the tower which provided the connection
+
+up_bytes - The number of bytes uploaded
+
+down_bytes - The number of bytes downloaded
+
+data_type - What type of information was transferred during the session
+
+ip_address - The IP of the server that the session was interacting with
+
+website_url - The URL of the system that the session was interacting with
+
+event_datetime - The date & time of the session event accurate to microseconds
+
+cdr_voice
+
+msisdn
+
+tower_id
+
+call_type - The type of phone call that was made
+
+dest_nr - The destination number that was connected to
+
+call_duration_sec - The call duration in seconds
+
+start_time - The call date & time accurate to microseconds
+
+The container will exit with code 0 once all cdr files have been generated.
+
+crm
+
+This creates CRM (Customer Record Management) data for the fictitious cellular provider and writes it to a database called “wtc_prod” which has been created on “postgres”. The tables created are
+
+accounts - Contains information about user accounts
+
+addresses - Contains address information related to the accounts
+
+devices - Contains device information related to the accounts
+
+The container will exit with code 0 once all crm events have been written.
+
+forex
+
+A currency generator, which generates tick data for two fictitious currency pairs.
+
+The tick events are sent to a topic called “tick-data” on the “redpanda” cluster
+
+timestamp - The tick time accurate to microseconds
+
+pair_name - The name of the currency pair “MRVZAR” or “WAKMRV”
+
+bid_price - The bid price of the pair at this tick
+
+ask_price - The ask price of the pair at this tick
+
+spread - The spread of the pair at this tick
+
+The container will exit with code 0 once all ticks have been produced.
+
+postgres
+
+A PostgreSQL server instance, in which the wtc database is created. The database contains the following DBs and schemas
+
+wtc_prod - The “production space” (RO)
+
+crm_system - CRM data generated by the “crm” container
+
+wtc_analytics - A “data-lake” space for analytical data (R/W)
+
+cdr_data - To hold CDR data
+
+crm_data - To hold CRM data
+
+forex_data - To hold forex data
+
+prepared_layers - To hold prepared layers based on CDR, CRM and forex data
+
+The administrative user for the postgres instance has been set as
+
+user: postgres
+
+password: postgres
+
+redpanda-[0,1,2]
+
+A three node Redpanda cluster, that can be used for buffering of information. Initial topics are
+
+tick-data
+
+Redpanda is a C++ version of Apache Kafka which has been used for this project as a means of limiting resource usage
+
+red panda-console
+
+This is a user interface for Redpanda to see what is going on with the cluster, nodes, topics
+
+sftp
+
+An SFTP server where the generated CDR data files will be hosted. The login details are
+
+user: cdr_data
+
+password: password
+
+NOTE : It should be noted that these systems are configured with minimal security and not in a manner which is suitable for production. This is merely as a benefit to the users.
+
+Project Deliverables
+The project contains several deliverables which the team can attempt to complete. Appendix A provides a diagram with supplied deliverables.
+
+Software Project Deliverables
+Deliverable
+
+Reference Week
+
+Description
+
+TBD 1 - CDR to Redpanda
+
+5
+
+The CDR data made available via SFTP needs to be downloaded and streamed into Redpanda for downstream processing
+
+TBD 2 - CRM CDC to Redpanda
+
+5
+
+The data changes applied to the CRM backend database needs to be continuously captured and streamed to Redpanda for downstream processing. A possible tool might be Debezium
+
+TBD 3 - CDR Stream processing
+
+3 & 5
+
+The CDR data in Redpanda needs to be summarised per MSISDN to provide a daily breakdown based on usage type. This information should be stored in a high velocity store (HVS), with near real-time latency (<60sec) for consumption via other services. Key values are* Bytes up & down per usage type* Call and Data cost, per type, in WAK, based on Voice @ 1 ZAR / minute, billed per second Data @ 49 ZAR / GB, billed per byte
+
+TBD 4 - HVS
+
+Add a high velocity store system, (like ScyllaDB) to store the data created by the stream processing system.
+
+TBD 5 - Usage API
+
+4
+
+The Usage API should allow external customers to read usage statistics summarised at a daily level in real-time from the HVS for a given MSISDN. The API must use a REST interface secured with basic authentication. Refer to the FAQ for a sample of the request / response
+
+TBD 6 - Persistence system
+
+3 & 5
+
+All data that is produced to Redpanda topics and SFTP should be persisted in the relevant PostgreSQL databases
+
+TBD 7 - Prepared layers
+
+3
+
+Several prepared layers (derived from the raw data ingested into PostgreSQL) must be created. These are described in detail further below. A possible tool might be Airflow or DBT (data build tool)
+
+Note	See the appendix on the Technology Stack for more information about the tools mentioned in the deliverables.
+Prepared Layer Deliverables
+Deliverable
+
+Description
+
+CDR Data - 1
+
+The CDR data should be summarised per 15 min, 30 min and 1 hr basis. Required fields are
+
+datetime - the start of the summary range
+
+msisdn - the msisdn the summary relates to
+
+call statistics summarised, by type and volume
+
+data usage summarised, by type and volume
+
+CDR Data - 2
+
+A summary of a user’s interactions with tower_ids over time. Indicating sessions per hour with the following information
+
+msisdn - the msisdn the information relates to
+
+tower id - the id of the tower that was interacted with
+
+session start - the start time of the tower interaction
+
+session end - the end time of the tower interaction
+
+Anytime an msisdn has > 2 consecutive interactions with a tower_id it’s seen as a session
+
+CRM Data - 1
+
+The CRM raw data should be summarised by creating a flattened data structure showing
+
+user info
+
+device info
+
+running balance based on call time and data usage in WAK, based on
+
+1 ZAR / minute, billed per second
+
+49 ZAR / GB, billed per byte
+
+The summary should be created at hourly level, using the average price for the hour, with accumulated values
+
+Forex Data - 1
+
+The forex data for WAKMRV and MRVZAR should be summarised with open, close, high & low values rolled to M1, M30 and H1 values. Additional each summary should contain the following technical indicator values
+
+EMA based on open price, looking back 8 time units
+
+EMA based on open price, looking back 21 time units
+
+ATR based on open price, looking back 8 time units
+
+ATR based on open price, looking back 21 time units
+
+Requirements
+When reviewing the delivered solution, the following will be assessed
+
+Code
+
+Code should preferably be written in Python
+
+All developed code requires unit testing
+
+Test deployment scripts to
+
+Create virtual environments
+
+Deploy requirements
+
+Run unit tests
+
+Deployment scripts to
+
+Create virtual environments
+
+Deploy requirements
+
+Initialise application
+
+Gracefully start-up and shutdown components
+
+You will have an opportunity to present the above in a demo session to staff and external reviewers. Follow these presentation requirements for your team presentation.
+
+Recommendations
+Following are a list of recommendations, which will assist in achieving an improved score
+
+Containerisation
+
+Deploy code and artefacts in containerized fashion
+
+Logging
+
+Extensive logging should be available for debugging
+
+Logs should be in standardised format
+
+The ability to parse logs by machine should be considered
+
+Metadata
+
+All developed systems should capture metrics
+
+The metrics should be graphed for easy consumption, Grafana is a good tool for this
+
+Relevant alerts should be defined to ensure systems are performing as expected. These need only be defined, not created
+
+Functional stubs should be built in for critical alerting
+
+Architecture
+
+Consider the resilience of the architecture
+
+This does not need to be built, but shown as capable, and potential failure points and other issues can be identified and discussed during the presentation.
+
+Frequently asked questions
+Start fails because of “Docker socket”
+Make sure the Docker desktop engine is installed and running in the machine
+
+Infra containers exit prematurely
+The infra containers need a minimum of 8GB memory available for containers in Docker engine resource configuration.If stability is still an issue try raising the memory limit to 12GB or 16GB
+
+What is ScyllaDB, why should it be used
+ScyllaDB is a C implementation of Apache Cassandra. This C implementation (ScyllaDB) uses a lot less resources than the equivalent Java implementation (Cassandra).
+
+Both implementations provide a horizontally scalable architecture, with a shared nothing architecture which makes it highly resilient.
+
+For the best performance and design outcome these systems would be recommended, however it is not required to use either of these as the backend for the RESt API.
+
+What is the expected REST API request/response
+The REST request should follow the format:
+
+http://localhost:18089/data_usage?msisdn=2712345678&start_time=20240101010203&end_time=20240101010203
+The REST response should follow the format:
+
+{
+	"msisdn": "2712345678",
+	"start_time": "",
+	"end_time": "",
+	"usage": [
+        {
+            "category": "data",
+    "usage_type": "video",
+            "total": 12312323,
+            "measure": "bytes",
+            "start_time": "2024-01-01 00:00:00"
+    },
+        {
+            "category": "data",
+            "usage_type": "video",
+            "total": 987654,
+            "measure": "bytes",
+            "start_time": "2024-01-01 01:00:00"
+    },
+        {
+            "category": "call",
+            "usage_type": "voice",
+            "total": 89,
+            "measure": "seconds",
+            "start_time": "2024-01-01 00:00:00"
+    },
+        {
+            "category": "call",
+            "usage_type": "video",
+            "total": 179,
+            "measure": "seconds",
+            "start_time": "2024-01-01 01:00:00"
+    },
+    .....
+    ]
+}
+Appendix A: Diagram
+img 0
+
+Figure 1: Diagram of project sources, supplied systems and required deliverables
+
+Appendix B : Technology Stack
+In this section we provide some additional information on the tools you can use in this project.
+
+Apache Zookeeper
+Apache ZooKeeper is an open-source coordination service for managing distributed systems.It provides essential services like configuration management, synchronisation and naming.This helps distributed applications coordinate and maintain consistency across their nodes.ZooKeeper is commonly used in systems like Apache Kafka and Hadoop to handle distributed configuration and leader election tasks, ensuring stability and fault tolerance in large-scale systems.It’s especially useful when you need to manage coordination tasks in systems that rely on multiple servers working together.
+
+Overview
+
+Getting started
+
+Debezium
+Debezium is an open-source platform for capturing and tracking changes in databases in real-time. It is used when you need to monitor and stream data changes from databases such as MySQL, PostgreSQL or MongoDB into applications or data processing systems. This allows you to react to changes immediately without polling the database repeatedly.
+
+Installing debezium
+
+Getting started: Tutorial
+
+Data build tool (dbt)
+Data build tool (dbt) is an open-source tool designed for transforming and modelling data within a data warehouse. It allows data analysts and engineers to write SQL queries to define data transformations and create a structured workflow for data modelling. It enables version control, testing and documentation of data models, ensuring that data remains consistent and reliable.
+
+Commonly used in modern analytics workflows, dbt integrates seamlessly with various data warehouses. It empowers teams to collaborate more effectively, streamline data transformations and enhance the overall analytics process, making it easier to derive insights from data.

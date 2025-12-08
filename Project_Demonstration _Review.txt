@@ -1,0 +1,25 @@
+Project Demonstration & Review
+The review process consists of these steps:
+
+Submission to LMS
+Commit your deploying code to Gitlab — it must compile and any unit tests you created must succeed, and you must be able to start up the pipeline and demonstrate it from the repo.
+
+Presentation
+You will need to present your project to others, and discuss your solution and favourite code overview with them.
+
+Aim for a 40 minutes presentation, followed by time for Q&A, that has the following structure:
+
+Present the system functionality by invoking the API directly, as well as using the web app.
+
+A quick overview and discussion of the solution designs you did — include paper drawings, whiteboard photographs or digital designs.
+
+An overview and discussion of the system and deployment architecture — include paper drawings, whiteboard photographs or digital designs.
+
+A discussion of the high-level structure of your code, i.e. overview of the directory structure and classes, and your reason for the structure.
+
+A discussion of the deployment code and build pipelines.
+
+Discussion on the favourite pieces of the codebase — show it on screen, and briefly discuss why you like it.
+
+Thoughts on how you would evolve the system further, if you had the time.
+
