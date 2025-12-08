@@ -49,3 +49,46 @@ dbt-compile:
 	else \
 		echo "No dbt directory - skipping"; \
 	fi
+
+
+# ------------------------------
+# Release helpers (minimal)
+# ------------------------------
+VERSION_PY = cdr_usage_api/__init__.py
+
+.PHONY: check-clean release
+
+check-clean:
+	@git update-index -q --ignore-submodules --refresh
+	@if ! git diff-index --quiet HEAD --; then \
+	  echo "Working tree is dirty. Commit or stash changes first."; exit 1; \
+	fi
+
+
+
+# Minimal release flow: check clean, run tests, tag and push
+# Usage: make release VERSION=v1.2.0
+release: check-clean
+	@test -n "$(VERSION)" || (echo "VERSION must be set, e.g. make release VERSION=v1.2.0"; exit 1)
+	@echo "Running tests..."
+	@$(MAKE) test
+	@echo "Creating annotated tag $(VERSION)..."
+	@git tag -a $(VERSION) -m "Release $(VERSION)"
+	@echo "Pushing tag to origin..."
+	@git push origin --tags
+	@echo "Done. CI should handle building/publishing on tag."
+
+# Minimal deploy: commit any changes, tag and push. Good for demos.
+# Usage: make deploy VERSION=v1.2.0
+.PHONY: deploy
+deploy:
+	@test -n "$(VERSION)" || (echo "VERSION must be set, e.g. make deploy VERSION=v1.2.0"; exit 1)
+	@echo "Staging all changes..."
+	@git add -A
+	@echo "Committing (if there are changes)..."
+	@git commit -m "chore(release): prepare $(VERSION)" || echo "No changes to commit"
+	@echo "Creating annotated tag $(VERSION)..."
+	@git tag -a $(VERSION) -m "Release $(VERSION)"
+	@echo "Pushing branch and tags to origin..."
+	@git push origin main --follow-tags
+	@echo "Deploy flow complete. CI (if configured) should run on the pushed tag."
