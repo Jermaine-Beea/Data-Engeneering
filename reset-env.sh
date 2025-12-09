@@ -3,7 +3,7 @@ docker compose down;
 docker container list -a | grep wtc | tr -s ' ' | cut -d' ' -f 1 | xargs docker container stop;
 docker container list -a | grep wtc | tr -s ' ' | cut -d' ' -f 1 | xargs docker container rm;
 docker image ls | tr -s ' ' | grep wtc | cut -d' ' -f 3 | xargs docker image rm;
-rm -rf ./volumes/data;
+sudo rm -rf ./volumes/data;
 sleep 5;
 export USE_HVS=true
 docker compose up -d;

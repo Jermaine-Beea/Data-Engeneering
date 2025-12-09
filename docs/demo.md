@@ -13,7 +13,7 @@ docker compose up -d
 Start only core services:
 
 ```bash
-docker compose up -d postgres redpanda-0 redpanda-1 redpanda-2 sftp
+docker compose up -d postgres redpanda sftp
 docker compose up -d cdr prepared-layers cdr-usage-api
 ```
 
